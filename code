@@ -1,0 +1,58 @@
+import pandas as pd
+import re
+
+# Load the dataset
+file_path = '/mnt/data/AI EarthHack Dataset.csv'
+data = pd.read_csv(file_path, encoding='ISO-8859-1')
+
+# Define a function to check for verbs in the sentence
+def contains_verb_simple(sentence):
+    verb_endings = ['ed', 'ing', 's', 'es']  # Common verb endings in English
+    words = sentence.split()
+    for word in words:
+        if any(word.endswith(ending) for ending in verb_endings):
+            return True
+    return False
+
+# Cleaning data based on the conditions
+cleaned_data = data[
+    data['solution'].apply(lambda x: isinstance(x, str) and len(x.split()) >= 5 and contains_verb_simple(x))
+]
+
+# Getting the number of rows in the cleaned data
+num_rows = cleaned_data.shape[0]
+
+
+# Define keywords for each SDG
+sdg_keywords = {
+    1: ["poverty", "poor", "economic growth"],
+    #... (similar structure for other SDGs)
+    17: ["partnership", "global goal", "collaboration"],
+}
+
+# Function to classify problems
+def classify_problem(problem, sdg_keywords):
+    problem_lower = problem.lower()
+    classifications = []
+    for sdg, keywords in sdg_keywords.items():
+        if any(keyword in problem_lower for keyword in keywords):
+            classifications.append(sdg)
+    return classifications or ["Others"]
+
+# Classify each problem
+cleaned_data["SDG"] = cleaned_data["problem"].apply(lambda x: classify_problem(x, sdg_keywords))
+
+# Count the number of problems in each SDG category
+sdg_counts = cleaned_data["SDG"].explode().value_counts()
+
+
+# Extract problems and solutions related to SDG 12
+sdg_12_data = cleaned_data[cleaned_data['SDG'].apply(lambda x: 12 in x)]
+
+# Get unique problems and solutions
+unique_problems = sdg_12_data['problem'].unique()
+unique_solutions = sdg_12_data['solution'].unique()
+
+# Prepare a synthesized problem statement and solution approach from the unique entries
+problem_statement = ' '.join(unique_problems[:5])  # Using a subset for brevity
+solution_approach = ' '.join(unique_solutions[:5])  # Using a subset for brevity
